@@ -1,4 +1,3 @@
-from calibration import get_direction
 from eyes import (
 	LEFT_EYE_CORNERS,
 	LEFT_EYE_TOP_BOTTOM,
@@ -12,6 +11,24 @@ from eyes import (
 
 
 def get_gaze_direction(face_landmarks, width, height):
+	left_iris, right_iris, horizontal, vertical = get_eye_position(
+		face_landmarks, width, height
+	)
+
+	direction = "centro"
+	if horizontal < 0.35:
+		direction = "esquerda"
+	elif horizontal > 0.65:
+		direction = "direita"
+	elif vertical < 0.35:
+		direction = "cima"
+	elif vertical > 0.65:
+		direction = "baixo"
+
+	return direction, left_iris, right_iris, horizontal, vertical
+
+
+def get_eye_position(face_landmarks, width, height):
 	left_corner_a = get_point(face_landmarks, LEFT_EYE_CORNERS[0], width, height)
 	left_corner_b = get_point(face_landmarks, LEFT_EYE_CORNERS[1], width, height)
 	right_corner_a = get_point(face_landmarks, RIGHT_EYE_CORNERS[0], width, height)
@@ -34,5 +51,4 @@ def get_gaze_direction(face_landmarks, width, height):
 	horizontal = max(0, min(horizontal, 1))
 	vertical = max(0, min(vertical, 1))
 
-	direction = get_direction(horizontal, vertical)
-	return direction, left_iris, right_iris, horizontal, vertical
+	return left_iris, right_iris, horizontal, vertical

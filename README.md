@@ -17,7 +17,7 @@ O programa captura imagens da webcam usando OpenCV. Cada frame é analisado pelo
 
 A posição da íris é comparada com os cantos dos olhos. Com essa comparação, o programa calcula uma direção aproximada e mostra o resultado na janela da câmera.
 
-Além da direção, a janela mostra um painel que representa a tela. O ponto vermelho indica a posição estimada do olhar, e os valores `X` e `Y` mostram uma coordenada baseada em uma tela de referência de `1920x1080`.
+Além da direção, o programa abre uma visualização em tela cheia que representa a tela. O ponto vermelho indica a posição estimada do olhar, a webcam aparece em uma miniatura no canto superior direito e os valores `X` e `Y` mostram uma coordenada baseada em uma tela de referência de `1920x1080`.
 
 As direções exibidas são:
 
@@ -56,6 +56,10 @@ uv run src/main.py
 
 Na primeira execução, o modelo `face_landmarker.task` será baixado automaticamente e salvo na pasta `models`.
 
+Na primeira execução também será feita uma calibração de 9 pontos. Mantenha a cabeça parada, olhe diretamente para cada ponto vermelho e aguarde a contagem de amostras terminar. O programa espera alguns frames para você se posicionar e usa a média de vários frames para reduzir ruídos.
+
+Os dados ficam salvos em `models/calibration.json` e são reutilizados nas próximas execuções. Durante o rastreamento, pressione `c` para calibrar novamente caso a posição da câmera ou do rosto mude. Pressione `Esc` para sair.
+
 Para fechar a janela e encerrar o programa, pressione a tecla `Esc`.
 
 ## Estrutura do projeto
@@ -63,10 +67,12 @@ Para fechar a janela e encerrar o programa, pressione a tecla `Esc`.
 ```text
 eye-tracker/
 ├── models/
-│   └── face_landmarker.task
+│   ├── face_landmarker.task
+│   └── calibration.json
 ├── src/
 │   ├── main.py
 │   ├── cam.py
+│   ├── display.py
 │   ├── face.py
 │   ├── eyes.py
 │   ├── gaze.py
@@ -79,10 +85,11 @@ Cada arquivo possui uma responsabilidade diferente:
 
 - `main.py`: executa o fluxo principal do programa.
 - `cam.py`: abre a webcam, captura os frames e encerra a câmera.
+- `display.py`: cria a tela cheia, o ponto do olhar e a miniatura da webcam.
 - `face.py`: baixa o modelo e detecta os landmarks do rosto.
 - `eyes.py`: trabalha com os pontos dos olhos e calcula o centro das íris.
 - `gaze.py`: compara as posições dos olhos e calcula a direção do olhar.
-- `calibration.py`: define a classificação das direções do olhar.
+- `calibration.py`: calibra, salva e transforma a posição dos olhos em coordenadas da tela.
 
 ## Limitações atuais
 
