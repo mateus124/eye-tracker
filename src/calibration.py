@@ -1,4 +1,5 @@
 import json
+from collections import deque
 from pathlib import Path
 
 import cv2
@@ -34,12 +35,25 @@ class Calibration:
 		return max(0, min(float(point[0]), 1)), max(0, min(float(point[1]), 1))
 
 
-def smooth_position(old_position, new_position, amount=0.2):
-	new_horizontal, new_vertical = new_position
-	old_horizontal, old_vertical = old_position
-	horizontal = old_horizontal + (new_horizontal - old_horizontal) * amount
-	vertical = old_vertical + (new_vertical - old_vertical) * amount
-	return horizontal, vertical
+class GazeFilter:
+	def __init__(self, amount=0.25, window_size=5):
+		self.amount = amount
+		self.positions = deque(maxlen=window_size)
+		self.position = (0.5, 0.5)
+
+	def reset(self, position=(0.5, 0.5)):
+		self.positions.clear()
+		self.position = position
+
+	def update(self, position):
+		self.positions.append(position)
+		filtered_horizontal = float(np.median([point[0] for point in self.positions]))
+		filtered_vertical = float(np.median([point[1] for point in self.positions]))
+		old_horizontal, old_vertical = self.position
+		horizontal = old_horizontal + (filtered_horizontal - old_horizontal) * self.amount
+		vertical = old_vertical + (filtered_vertical - old_vertical) * self.amount
+		self.position = horizontal, vertical
+		return self.position
 
 
 def load_calibration():

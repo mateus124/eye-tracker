@@ -1,6 +1,6 @@
 import cv2
 from cam import close_camera, get_frame, open_camera
-from calibration import get_direction, load_calibration, run_calibration, smooth_position
+from calibration import GazeFilter, get_direction, load_calibration, run_calibration
 from display import create_display
 from face import create_landmarker, draw_face, find_face
 from gaze import get_gaze_direction
@@ -22,8 +22,8 @@ def main():
     with create_landmarker() as landmarker:
         timestamp = 0
         calibration = load_calibration()
-        horizontal = 0.5
-        vertical = 0.5
+        gaze_filter = GazeFilter()
+        horizontal, vertical = gaze_filter.position
 
         if calibration is None:
             calibration, timestamp = run_calibration(camera, landmarker, timestamp)
@@ -46,7 +46,7 @@ def main():
                     face, width, height
                 )
                 new_position = calibration.transform(raw_horizontal, raw_vertical)
-                horizontal, vertical = smooth_position((horizontal, vertical), new_position, 0.35)
+                horizontal, vertical = gaze_filter.update(new_position)
                 direction = get_direction(horizontal, vertical)
                 draw_face(frame, face)
                 cv2.circle(frame, left_iris, 4, (0, 0, 255), -1)
@@ -69,6 +69,7 @@ def main():
                 calibration, timestamp = run_calibration(camera, landmarker, timestamp)
                 if calibration is None:
                     break
+                gaze_filter.reset()
             if key == 27:
                 break
 

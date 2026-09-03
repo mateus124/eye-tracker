@@ -60,6 +60,8 @@ Na primeira execução também será feita uma calibração de 9 pontos. Mantenh
 
 Os dados ficam salvos em `models/calibration.json` e são reutilizados nas próximas execuções. Durante o rastreamento, pressione `c` para calibrar novamente caso a posição da câmera ou do rosto mude. Pressione `Esc` para sair.
 
+Durante o rastreamento, o ponto passa por um filtro de mediana e uma suavização gradual. Isso reduz tremores e picos causados pela webcam, mantendo o movimento do alvo mais estável.
+
 Para fechar a janela e encerrar o programa, pressione a tecla `Esc`.
 
 ## Estrutura do projeto
