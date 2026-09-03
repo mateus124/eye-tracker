@@ -17,6 +17,8 @@ O programa captura imagens da webcam usando OpenCV. Cada frame é analisado pelo
 
 A posição da íris é comparada com os cantos dos olhos. Com essa comparação, o programa calcula uma direção aproximada e mostra o resultado na janela da câmera.
 
+Além da direção, a janela mostra um painel que representa a tela. O ponto vermelho indica a posição estimada do olhar, e os valores `X` e `Y` mostram uma coordenada baseada em uma tela de referência de `1920x1080`.
+
 As direções exibidas são:
 
 - `esquerda`
@@ -63,13 +65,27 @@ eye-tracker/
 ├── models/
 │   └── face_landmarker.task
 ├── src/
-│   └── main.py
+│   ├── main.py
+│   ├── cam.py
+│   ├── face.py
+│   ├── eyes.py
+│   ├── gaze.py
+│   └── calibration.py
 ├── pyproject.toml
 └── README.md
 ```
 
+Cada arquivo possui uma responsabilidade diferente:
+
+- `main.py`: executa o fluxo principal do programa.
+- `cam.py`: abre a webcam, captura os frames e encerra a câmera.
+- `face.py`: baixa o modelo e detecta os landmarks do rosto.
+- `eyes.py`: trabalha com os pontos dos olhos e calcula o centro das íris.
+- `gaze.py`: compara as posições dos olhos e calcula a direção do olhar.
+- `calibration.py`: define a classificação das direções do olhar.
+
 ## Limitações atuais
 
-Este projeto fornece uma estimativa simples da direção do olhar. Ele não substitui equipamentos profissionais de eye tracking e ainda não calcula com precisão o ponto exato da tela observado pela pessoa.
+Este projeto fornece uma estimativa simples da direção e da posição do olhar. O painel de coordenadas ainda não representa com precisão o ponto real da tela, pois precisa de uma etapa de calibração individual para cada pessoa e cada webcam.
 
 Os resultados podem variar de acordo com a iluminação, a posição da webcam, a distância do rosto e a qualidade da câmera.

@@ -1,105 +1,53 @@
 import cv2
-import mediapipe as mp
-from pathlib import Path
-from urllib.request import urlretrieve
+from cam import close_camera, get_frame, open_camera
+from face import create_landmarker, draw_face, find_face
+from gaze import get_gaze_direction
 
-LEFT_EYE_CORNERS = [33, 133]
-RIGHT_EYE_CORNERS = [362, 263]
-LEFT_IRIS = [468, 469, 470, 471, 472]
-RIGHT_IRIS = [473, 474, 475, 476, 477]
-MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"
-MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "face_landmarker.task"
 
-def get_point(landmarks, index, width, height):
-    landmark = landmarks[index]
-    return int(landmark.x * width), int(landmark.y * height)
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
+PANEL_WIDTH = 320
 
-def get_iris_center(landmarks, iris_indices, width, height):
-    x_total = 0
-    y_total = 0
 
-    for index in iris_indices:
-        x, y = get_point(landmarks, index, width, height)
-        x_total += x
-        y_total += y
+def draw_screen_panel(frame, horizontal, vertical):
+    panel_height = frame.shape[0]
+    panel = frame.copy()
+    panel = cv2.resize(panel, (PANEL_WIDTH, panel_height))
+    panel[:] = (35, 35, 35)
 
-    return x_total // len(iris_indices), y_total // len(iris_indices)
-
-def get_gaze_direction(face_landmarks, width, height):
-    left_corner_a = get_point(face_landmarks, LEFT_EYE_CORNERS[0], width, height)
-    left_corner_b = get_point(face_landmarks, LEFT_EYE_CORNERS[1], width, height)
-    right_corner_a = get_point(face_landmarks, RIGHT_EYE_CORNERS[0], width, height)
-    right_corner_b = get_point(face_landmarks, RIGHT_EYE_CORNERS[1], width, height)
-    left_iris = get_iris_center(face_landmarks, LEFT_IRIS, width, height)
-    right_iris = get_iris_center(face_landmarks, RIGHT_IRIS, width, height)
-
-    left_min_x, left_max_x = sorted((left_corner_a[0], left_corner_b[0]))
-    right_min_x, right_max_x = sorted((right_corner_a[0], right_corner_b[0]))
-    left_center_y = (left_corner_a[1] + left_corner_b[1]) / 2
-    right_center_y = (right_corner_a[1] + right_corner_b[1]) / 2
-
-    left_horizontal = (left_iris[0] - left_min_x) / max(left_max_x - left_min_x, 1)
-    right_horizontal = (right_iris[0] - right_min_x) / max(right_max_x - right_min_x, 1)
-    horizontal = (left_horizontal + right_horizontal) / 2
-    vertical = ((left_iris[1] - left_center_y) + (right_iris[1] - right_center_y)) / 2
-
-    if horizontal < 0.35:
-        return "esquerda", left_iris, right_iris
-    if horizontal > 0.65:
-        return "direita", left_iris, right_iris
-    if vertical < -4:
-        return "cima", left_iris, right_iris
-    if vertical > 4:
-        return "baixo", left_iris, right_iris
-    return "centro", left_iris, right_iris
+    point_x = min(int(horizontal * PANEL_WIDTH), PANEL_WIDTH - 1)
+    point_y = min(int(vertical * panel_height), panel_height - 1)
+    cv2.rectangle(panel, (0, 0), (PANEL_WIDTH - 1, panel_height - 1), (255, 255, 255), 2)
+    cv2.line(panel, (point_x, 0), (point_x, panel_height), (80, 80, 80), 1)
+    cv2.line(panel, (0, point_y), (PANEL_WIDTH, point_y), (80, 80, 80), 1)
+    cv2.circle(panel, (point_x, point_y), 8, (0, 0, 255), -1)
+    return panel
 
 
 def main():
-    if not MODEL_PATH.exists():
-        MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-        print("Baixando modelo do MediaPipe...")
-        urlretrieve(MODEL_URL, MODEL_PATH)
+    camera = open_camera()
 
-    camera = cv2.VideoCapture(0)
-
-    if not camera.isOpened():
-        print("Erro: não foi possível abrir a webcam.")
+    if camera is None:
         return
 
-    base_options = mp.tasks.BaseOptions(model_asset_path=str(MODEL_PATH))
-    options = mp.tasks.vision.FaceLandmarkerOptions(base_options=base_options)
-    options.running_mode = mp.tasks.vision.RunningMode.VIDEO
-    options.num_faces = 1
-    options.min_face_detection_confidence = 0.5
-    options.min_face_presence_confidence = 0.5
-    options.min_tracking_confidence = 0.5
-
-    with mp.tasks.vision.FaceLandmarker.create_from_options(options) as landmarker:
+    with create_landmarker() as landmarker:
         timestamp = 0
 
         while True:
-            success, frame = camera.read()
+            frame = get_frame(camera)
 
-            if not success:
-                print("Erro ao capturar frame.")
+            if frame is None:
                 break
 
-            frame = cv2.flip(frame, 1)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-            results = landmarker.detect_for_video(image, timestamp)
+            face = find_face(landmarker, frame, timestamp)
             timestamp += 1
 
-            if results.face_landmarks:
+            if face is not None:
                 height, width, _ = frame.shape
-                face = results.face_landmarks[0]
-                direction, left_iris, right_iris = get_gaze_direction(face, width, height)
-
-                for landmark in face:
-                    x = int(landmark.x * width)
-                    y = int(landmark.y * height)
-                    cv2.circle(frame, (x, y), 1, (0, 255, 0), -1)
-
+                direction, left_iris, right_iris, horizontal, vertical = get_gaze_direction(
+                    face, width, height
+                )
+                draw_face(frame, face)
                 cv2.circle(frame, left_iris, 4, (0, 0, 255), -1)
                 cv2.circle(frame, right_iris, 4, (0, 0, 255), -1)
                 cv2.putText(
@@ -112,14 +60,29 @@ def main():
                     2,
                     cv2.LINE_AA,
                 )
+                cv2.putText(
+                    frame,
+                    f"X: {int(horizontal * SCREEN_WIDTH)} Y: {int(vertical * SCREEN_HEIGHT)}",
+                    (20, 75),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.7,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
+                panel = draw_screen_panel(frame, horizontal, vertical)
+                frame = cv2.hconcat([frame, panel])
+
+            if face is None:
+                panel = draw_screen_panel(frame, 0.5, 0.5)
+                frame = cv2.hconcat([frame, panel])
 
             cv2.imshow("Eye Tracker", frame)
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
-    camera.release()
-    cv2.destroyAllWindows()
+    close_camera(camera)
 
 
 if __name__ == "__main__":
