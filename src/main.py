@@ -4,6 +4,7 @@ from calibration import GazeFilter, get_direction, load_calibration, run_calibra
 from display import create_display
 from face import create_landmarker, draw_face, find_face
 from gaze import get_gaze_direction
+from heatmap import GazeHeatmap
 
 
 def main():
@@ -23,6 +24,7 @@ def main():
         timestamp = 0
         calibration = load_calibration()
         gaze_filter = GazeFilter()
+        gaze_heatmap = GazeHeatmap()
         horizontal, vertical = gaze_filter.position
 
         if calibration is None:
@@ -47,6 +49,7 @@ def main():
                 )
                 new_position = calibration.transform(raw_horizontal, raw_vertical)
                 horizontal, vertical = gaze_filter.update(new_position)
+                gaze_heatmap.add(horizontal, vertical)
                 direction = get_direction(horizontal, vertical)
                 draw_face(frame, face)
                 cv2.circle(frame, left_iris, 4, (0, 0, 255), -1)
@@ -73,6 +76,9 @@ def main():
             if key == 27:
                 break
 
+    heatmap_path = gaze_heatmap.save()
+    if heatmap_path is not None:
+        print(f"Mapa de calor salvo em: {heatmap_path}")
     close_camera(camera)
 
 

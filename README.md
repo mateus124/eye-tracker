@@ -62,7 +62,10 @@ Os dados ficam salvos em `models/calibration.json` e são reutilizados nas próx
 
 Durante o rastreamento, o ponto passa por um filtro de mediana e uma suavização gradual. Isso reduz tremores e picos causados pela webcam, mantendo o movimento do alvo mais estável.
 
-Para fechar a janela e encerrar o programa, pressione a tecla `Esc`.
+Para fechar a janela e encerrar o programa, pressione a tecla `Esc`. Ao sair, o
+programa salva um mapa de calor em `reports/gaze_heatmap_AAAAMMDD_HHMMSS.png`.
+As regiões mais quentes representam os locais onde o olhar permaneceu por mais
+tempo, considerando apenas os frames em que um rosto foi detectado.
 
 ## Estrutura do projeto
 
@@ -92,6 +95,9 @@ Cada arquivo possui uma responsabilidade diferente:
 - `eyes.py`: trabalha com os pontos dos olhos e calcula o centro das íris.
 - `gaze.py`: compara as posições dos olhos e calcula a direção do olhar.
 - `calibration.py`: calibra, salva e transforma a posição dos olhos em coordenadas da tela.
+- `heatmap.py`: acumula as posições do olhar e gera a imagem do mapa de calor.
+
+Os mapas de calor gerados ficam na pasta `reports/`.
 
 ## Limitações atuais
 
