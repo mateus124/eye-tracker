@@ -18,7 +18,10 @@ def download_model():
 def create_landmarker():
 	download_model()
 
-	base_options = mp.tasks.BaseOptions(model_asset_path=str(MODEL_PATH))
+	base_options = mp.tasks.BaseOptions(
+		model_asset_path=str(MODEL_PATH),
+		delegate=mp.tasks.BaseOptions.Delegate.CPU,
+	)
 	options = mp.tasks.vision.FaceLandmarkerOptions(base_options=base_options)
 	options.running_mode = mp.tasks.vision.RunningMode.VIDEO
 	options.num_faces = 1
